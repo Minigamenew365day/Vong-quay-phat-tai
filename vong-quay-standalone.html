@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vòng Quay Phát Tài</title>
+<style>
+  :root{
+    --red:#B3122B;
+    --red-dark:#7E0C1E;
+    --gold:#E8B84B;
+    --gold-light:#F7DFA0;
+    --cream:#FFF8E9;
+    --ink:#3A1008;
+    color-scheme: light;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth; scroll-padding-top: env(safe-area-inset-top, 0px);}
+  body{
+    margin:0; min-height:100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: radial-gradient(circle at 50% -10%, #8f1626 0%, var(--red-dark) 55%, #4a0710 100%);
+    color: var(--cream);
+    overflow-x:hidden;
+  }
+  .wrap{max-width:480px; margin:0 auto; padding:28px 18px 60px;}
+  h1{
+    font-family: Georgia, 'Times New Roman', serif;
+    text-align:center; font-size:30px; letter-spacing:.5px; margin:6px 0 2px;
+    color: var(--gold-light); text-shadow:0 2px 0 rgba(0,0,0,.35);
+  }
+  .sub{text-align:center; color:var(--gold-light); opacity:.85; margin:0 0 24px; font-size:14px;}
+
+  /* WHEEL */
+  .wheel-stage{position:relative; width:300px; height:300px; margin:0 auto 18px;}
+  .pointer{
+    position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    width:0;height:0; border-left:14px solid transparent; border-right:14px solid transparent;
+    border-top:26px solid var(--gold); z-index:5; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));
+  }
+  .wheel{
+    width:300px; height:300px; border-radius:50%;
+    border:8px solid var(--gold);
+    box-shadow: 0 0 0 4px var(--red-dark), 0 10px 30px rgba(0,0,0,.45) inset, 0 8px 24px rgba(0,0,0,.4);
+    position:relative; overflow:hidden;
+    transition: transform 4.5s cubic-bezier(.12,.66,.1,1);
+  }
+  .label{
+    position:absolute; top:50%; left:50%; width:0; height:0; transform-origin:0 0;
+  }
+  .label-inner{
+    position:absolute; left:0; top:0; transform:translate(-50%,-118px);
+    width:70px; text-align:center;
+    font-weight:700; font-size:13px; line-height:1.25;
+    color:var(--ink); text-shadow:0 1px 0 rgba(255,255,255,.35);
+  }
+  .label-inner .ico{font-size:20px; display:block; margin-bottom:2px;}
+  .hub{
+    position:absolute; top:50%; left:50%; width:64px; height:64px; border-radius:50%;
+    transform:translate(-50%,-50%);
+    background: radial-gradient(circle at 35% 30%, var(--gold-light), var(--gold) 60%, #b4821f);
+    border:3px solid #fff3cf; box-shadow:0 4px 10px rgba(0,0,0,.4); z-index:4;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--red-dark);
+  }
+  #spinBtn{
+    display:block; margin:6px auto 0; padding:14px 42px; font-size:18px; font-weight:700;
+    color:var(--red-dark); background:linear-gradient(180deg,var(--gold-light),var(--gold));
+    border:none; border-radius:999px; cursor:pointer; letter-spacing:.5px;
+    box-shadow:0 6px 0 #a9771b, 0 10px 18px rgba(0,0,0,.35);
+  }
+  #spinBtn:active{transform:translateY(4px); box-shadow:0 2px 0 #a9771b;}
+  #spinBtn:disabled{opacity:.6; cursor:not-allowed;}
+
+  .result{
+    text-align:center; margin-top:16px; min-height:26px; font-size:16px; font-weight:600; color:var(--gold-light);
+  }
+
+  /* SECTION DIVIDER */
+  .section{
+    margin-top:40px; background:rgba(255,248,233,.06); border:1px solid rgba(232,184,75,.4);
+    border-radius:18px; padding:22px 20px;
+  }
+  .section h2{
+    font-family: Georgia, serif; font-size:17px; margin:0 0 6px; color:#ffffff;
+    white-space:nowrap; overflow-x:auto;
+  }
+  .section p.note{margin:0 0 16px; font-size:13.5px; color:var(--cream); opacity:.85;}
+
+  .field-label{font-size:13px; color:var(--gold-light); margin-bottom:6px; display:block;}
+  input[type=password], input[type=text], input[type=tel]{
+    width:100%; padding:13px 14px; border-radius:10px; border:1px solid rgba(232,184,75,.5);
+    background:rgba(255,255,255,.08); color:var(--cream); font-size:16px; outline:none;
+  }
+  input::placeholder{color:rgba(255,248,233,.45);}
+  input:focus{border-color:var(--gold); box-shadow:0 0 0 3px rgba(232,184,75,.25);}
+
+  .ok-btn{
+    margin-top:14px; width:100%; padding:13px; border:none; border-radius:10px;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold)); color:var(--red-dark);
+    font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .ok-btn:active{filter:brightness(.95);}
+
+  .msg{margin-top:10px; font-size:14px; min-height:18px;}
+  .msg.err{color:#ffb3b3;}
+  .msg.ok{color:#bdf7c6;}
+
+  .claim-fields{display:none; margin-top:16px;}
+  .claim-fields.show{display:block;}
+
+  footer{text-align:center; margin-top:34px; font-size:12px; opacity:.6;}
+
+  @keyframes waveLetter{
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .wavy span{
+    display:inline-block;
+    animation: waveLetter 1.2s ease-in-out infinite;
+  }
+
+  .modal-overlay{
+    display:none; position:fixed; inset:0; z-index:50;
+    background:rgba(0,0,0,.55);
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:linear-gradient(180deg,#fff8e9,#f6e6bf);
+    border-radius:18px; max-width:340px; width:100%;
+    padding:28px 22px 22px; text-align:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.5);
+  }
+  .modal-x{
+    width:62px; height:62px; border-radius:50%;
+    background:#D7263D; color:#fff; font-size:34px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 14px; box-shadow:0 4px 10px rgba(215,38,61,.4);
+  }
+  .modal-title{color:#7E0C1E; font-size:19px; font-weight:800; margin:0 0 20px;}
+  .modal-ok{
+    width:100%; padding:12px; border:none; border-radius:10px;
+    background:linear-gradient(180deg,#F7DFA0,#E8B84B); color:var(--red-dark);
+    font-weight:700; font-size:15px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🎉 Vòng Quay Phát Tài</h1>
+  <p class="sub">Quay là trúng — rinh ngay lì xì may mắn!</p>
+
+  <div class="wheel-stage">
+    <div class="pointer"></div>
+    <div class="wheel" id="wheel"></div>
+    <div class="hub" id="hubBtn" style="cursor:pointer;">QUAY</div>
+  </div>
+
+  <button id="spinBtn">BẤM ĐỂ QUAY</button>
+  <div class="result" id="result"></div>
+
+  <div class="section" id="wifiSection">
+    <h2><svg width="22" height="22" viewBox="0 0 24 24" style="vertical-align:-4px; margin-right:4px;"><path d="M12 20.5a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2Z" fill="#2196F3"/><path d="M8.2 14.7a5.6 5.6 0 0 1 7.6 0" stroke="#2196F3" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M4.8 10.9a10.6 10.6 0 0 1 14.4 0" stroke="#2196F3" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M1.5 7.2a15.4 15.4 0 0 1 21 0" stroke="#2196F3" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Kết Nối Wi-Fi : VNPT-Duy Tien</h2>
+    <p class="note wavy" id="wavyText" style="color:#ffffff; font-weight:800; font-size:18px; margin-left:26px;">Nhập Tại Đây</p>
+    <input type="text" id="review" placeholder="">
+    <button class="ok-btn" id="reviewOk">OK</button>
+    <div class="msg" id="reviewMsg"></div>
+  </div>
+
+  <button id="reopenClaimBtn" style="display:none; margin:0 auto 20px; padding:10px 24px; border:none; border-radius:999px; background:linear-gradient(180deg,#F7DFA0,#E8B84B); color:var(--red-dark); font-weight:700; font-size:14px; cursor:pointer;">🎁 Nhận quà</button>
+
+  <div class="section" id="claimSection" style="display:none; position:relative;">
+    <button id="claimCloseBtn" style="position:absolute; top:12px; right:14px; background:none; border:none; color:#ff4d4d; font-size:22px; font-weight:700; cursor:pointer; line-height:1;">✕</button>
+    <h2>🎁 Nhận quà</h2>
+    <p class="note">Vui lòng để lại thông tin để chúng tôi liên hệ trao quà.</p>
+    <label class="field-label" for="name">Họ và tên</label>
+    <input type="text" id="name" placeholder="Nguyễn Văn A">
+    <label class="field-label" for="phone" style="margin-top:12px; display:block;">Số điện thoại</label>
+    <input type="tel" id="phone" placeholder="09xx xxx xxx">
+    <button class="ok-btn" id="claimOk">Gửi thông tin nhận quà</button>
+    <div class="msg" id="claimMsg"></div>
+  </div>
+
+  <div class="section" id="adminSection" style="display:none;">
+    <h2>👁️ Quản trị — Nội dung đã nhập</h2>
+    <p class="note">Chỉ chủ vong quay mới thấy mục này.</p>
+    <div id="adminList" style="font-size:13px; line-height:1.5;"></div>
+    <button class="ok-btn" id="clearHistoryBtn" style="margin-top:14px; background:linear-gradient(180deg,#e37a7a,#c9403f); color:#fff; display:none;">Xóa</button>
+
+    <button id="trashToggle" style="margin-top:16px; width:100%; padding:10px; border:1px solid rgba(232,184,75,.4); border-radius:8px; background:transparent; color:var(--gold-light); font-size:13px; cursor:pointer; display:none;">🗑️ Thùng rác (<span id="trashCount">0</span>)</button>
+    <div id="trashPanel" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(232,184,75,.3);">
+      <div id="trashList" style="font-size:13px; line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <footer>Chương trình chỉ mang tính giải trí tại sự kiện.</footer>
+</div>
+
+<div class="modal-overlay" id="errorModal">
+  <div class="modal-box">
+    <div class="modal-x">✕</div>
+    <div class="modal-title">Sai Vui Lòng Nhập Lại</div>
+    <button class="modal-ok" id="errorModalOk">OK</button>
+  </div>
+</div>
+
+<script>
+const PRIZES = [
+  {label:'2.000đ', icon:'💵', weight:30},
+  {label:'5.000đ', icon:'💵', weight:20},
+  {label:'2.000đ', icon:'💵', weight:30},
+  {label:'10.000đ', icon:'💴', weight:10},
+  {label:'5.000đ', icon:'💵', weight:20},
+  {label:'10.000đ', icon:'💴', weight:10},
+  {label:'15.000đ', icon:'💶', weight:5},
+  {label:'5.000đ', icon:'💵', weight:20},
+  {label:'20.000đ', icon:'💷', weight:2},
+  {label:'Hộp quà', icon:'🎁', weight:8},
+];
+const N = PRIZES.length;
+const segAngle = 360 / N;
+const wheel = document.getElementById('wheel');
+const spinBtn = document.getElementById('spinBtn');
+const resultEl = document.getElementById('result');
+
+// Background colors: one conic-gradient, alternating slice colors.
+const stops = PRIZES.map((p, i) => {
+  const from = i * segAngle;
+  const to = (i + 1) * segAngle;
+  const color = i % 2 === 0 ? '#F7DFA0' : '#FFF8E9';
+  return `${color} ${from}deg ${to}deg`;
+}).join(', ');
+wheel.style.background = `conic-gradient(${stops})`;
+
+// Labels: placed radially at each slice's center angle, independent of the background.
+PRIZES.forEach((p, i) => {
+  const mid = i * segAngle + segAngle / 2;
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.style.transform = `rotate(${mid}deg)`;
+  const inner = document.createElement('div');
+  inner.className = 'label-inner';
+  inner.dataset.mid = mid;
+  inner.style.transform = `translate(-50%,-118px) rotate(${-mid}deg)`;
+  inner.innerHTML = `<span class="ico">${p.icon}</span>${p.label}`;
+  label.appendChild(inner);
+  wheel.appendChild(label);
+});
+
+// Keep every label upright on screen, whatever angle the wheel has spun to.
+function straightenLabels(netDeg) {
+  document.querySelectorAll('.label-inner').forEach(inner => {
+    const mid = parseFloat(inner.dataset.mid) || 0;
+    inner.style.transform = `translate(-50%,-118px) rotate(${-(mid + netDeg)}deg)`;
+  });
+}
+
+function pickWeightedIndex() {
+  const total = PRIZES.reduce((s, p) => s + (p.weight || 1), 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < PRIZES.length; i++) {
+    r -= (PRIZES[i].weight || 1);
+    if (r <= 0) return i;
+  }
+  return PRIZES.length - 1;
+}
+
+let spinning = false;
+let reviewed = false;
+let spinsLeft = 0;
+let wonPrizes = [];
+
+function doOneSpin(onDone) {
+  spinning = true;
+  spinBtn.disabled = true;
+  resultEl.textContent = '';
+
+  const idx = pickWeightedIndex();
+  const targetCenter = idx * segAngle + segAngle / 2;
+  const fullTurns = 6 * 360;
+  const currentRotation = (parseFloat(wheel.dataset.rot) || 0);
+  const currentMod = ((currentRotation % 360) + 360) % 360;
+  const desiredMod = ((360 - targetCenter) % 360 + 360) % 360;
+  const neededExtra = ((desiredMod - currentMod) % 360 + 360) % 360;
+  const finalRotation = fullTurns + neededExtra;
+  const newRotation = currentRotation + finalRotation;
+  wheel.dataset.rot = newRotation;
+  wheel.style.transform = `rotate(${newRotation}deg)`;
+
+  setTimeout(() => {
+    spinning = false;
+    straightenLabels(((newRotation % 360) + 360) % 360);
+    const prize = PRIZES[idx];
+    wonPrizes.push(prize);
+    resultEl.textContent = `🎊 Chúc mừng! Bạn trúng: ${prize.icon} ${prize.label}`;
+    onDone(prize);
+  }, 4600);
+}
+
+function runSpinQueue() {
+  if (spinsLeft <= 0) {
+    spinBtn.disabled = false;
+    const summary = wonPrizes.map(p => `${p.icon} ${p.label}`).join(', ');
+    resultEl.innerHTML = `🎊 Cả 3 lượt: ${summary}`;
+    const claimSection = document.getElementById('claimSection');
+    claimSection.style.display = 'block';
+    claimSection.scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
+  spinBtn.textContent = `BẤM ĐỂ QUAY (còn ${spinsLeft} lượt)`;
+  spinBtn.disabled = false;
+}
+
+spinBtn.addEventListener('click', () => {
+  if (!reviewed) {
+    document.getElementById('wifiSection').scrollIntoView({behavior:'smooth', block:'center'});
+    document.getElementById('review').focus();
+    return;
+  }
+  if (spinning) return;
+  if (spinsLeft <= 0) { spinsLeft = 3; wonPrizes = []; }
+  spinsLeft--;
+  doOneSpin(() => {
+    runSpinQueue();
+  });
+});
+document.getElementById('hubBtn').addEventListener('click', () => spinBtn.click());
+document.getElementById('claimCloseBtn').addEventListener('click', () => {
+  document.getElementById('claimSection').style.display = 'none';
+  document.getElementById('reopenClaimBtn').style.display = 'block';
+});
+document.getElementById('reopenClaimBtn').addEventListener('click', () => {
+  document.getElementById('claimSection').style.display = 'block';
+  document.getElementById('reopenClaimBtn').style.display = 'none';
+  document.getElementById('claimSection').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// Wavy animated text for the "Nhập Tại Đây" label.
+(() => {
+  const el = document.getElementById('wavyText');
+  const text = el.textContent;
+  el.innerHTML = Array.from(text).map((ch, i) => {
+    const safe = ch === ' ' ? '&nbsp;' : ch;
+    return `<span style="animation-delay:${i * 0.08}s;">${safe}</span>`;
+  }).join('');
+})();
+
+// Password gate — checked locally in the browser only, no data sent anywhere.
+const CODE = '12345666';
+
+// === CẤU HÌNH LƯU TRỮ: Google Apps Script Web App (thay cho hệ thống của Claude) ===
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyYl4JuX9hou7rud9jN7q2WLgSEiedMjIaupolbx9jT4d1Zs2dwaAZa1pw05NtrwBtZ/exec';
+
+// Chủ sở hữu: mở link kèm #admin ở cuối (vd: ...html#admin) để thấy khung Quản trị
+// và được miễn yêu cầu 1000 ký tự.
+let isOwnerFlag = (location.hash || '').toLowerCase().includes('admin');
+
+async function sheetApi(payload) {
+  const res = await fetch(SHEET_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // tránh preflight CORS
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+async function sheetGetAll() {
+  const res = await fetch(SHEET_API_URL);
+  const data = await res.json();
+  return (data && data.rows) ? data.rows : [];
+}
+
+// Admin panel: chỉ hiện khi mở link kèm #admin, liệt kê mọi đánh giá đã gửi.
+(async () => {
+  try {
+    if (!isOwnerFlag) return;
+    document.getElementById('adminSection').style.display = 'block';
+    document.getElementById('trashToggle').style.display = 'block';
+    const listEl = document.getElementById('adminList');
+    const trashEl = document.getElementById('trashList');
+    const trashToggle = document.getElementById('trashToggle');
+    const trashPanel = document.getElementById('trashPanel');
+    const trashCountEl = document.getElementById('trashCount');
+    trashToggle.addEventListener('click', () => {
+      trashPanel.style.display = trashPanel.style.display === 'block' ? 'none' : 'block';
+    });
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    const selected = new Set();
+
+    function updateClearBtn() {
+      confirming = false;
+      clearBtn.style.display = selected.size > 0 ? 'block' : 'none';
+      clearBtn.textContent = `Xóa (${selected.size})`;
+    }
+
+    let confirming = false;
+    let confirmTimer = null;
+
+    // "Xóa" here is a soft delete: it just flags the item, moving it into the Trash list below.
+    clearBtn.addEventListener('click', async () => {
+      if (selected.size === 0) return;
+
+      if (!confirming) {
+        confirming = true;
+        clearBtn.textContent = `Bấm lần nữa để chuyển vào thùng rác (${selected.size})`;
+        clearTimeout(confirmTimer);
+        confirmTimer = setTimeout(() => { confirming = false; updateClearBtn(); }, 4000);
+        return;
+      }
+
+      confirming = false;
+      clearTimeout(confirmTimer);
+      clearBtn.disabled = true;
+      clearBtn.textContent = 'Đang chuyển vào thùng rác...';
+      try {
+        for (const id of Array.from(selected)) {
+          await sheetApi({ action: 'setDeleted', id: id, deleted: true });
+          selected.delete(id);
+        }
+        await refreshAdminList();
+      } catch (e) {
+        clearBtn.textContent = 'Lỗi: ' + (e && e.message ? e.message : 'không xác định');
+      }
+      clearBtn.disabled = false;
+      updateClearBtn();
+    });
+
+    async function restoreItem(id) {
+      try { await sheetApi({ action: 'setDeleted', id: id, deleted: false }); await refreshAdminList(); }
+      catch (e) { alert('Không khôi phục được: ' + (e && e.message ? e.message : 'lỗi không xác định')); }
+    }
+
+    const purgeConfirm = new Set();
+    async function purgeItem(id, btn) {
+      if (!purgeConfirm.has(id)) {
+        purgeConfirm.add(id);
+        btn.textContent = 'Bấm lần nữa để xóa vĩnh viễn';
+        setTimeout(() => purgeConfirm.delete(id), 4000);
+        return;
+      }
+      purgeConfirm.delete(id);
+      try { await sheetApi({ action: 'purge', id: id }); await refreshAdminList(); }
+      catch (e) { alert('Không xóa được: ' + (e && e.message ? e.message : 'lỗi không xác định')); }
+    }
+
+    async function refreshAdminList() {
+      let rows;
+      try { rows = await sheetGetAll(); }
+      catch (e) { listEl.textContent = 'Không tải được dữ liệu: ' + (e && e.message ? e.message : 'lỗi không xác định'); return; }
+      const all = rows.map(d => ({ id: d.id, data: d }));
+      const active = all.filter(r => !r.data.deleted).sort((a,b) => new Date(b.data.createdAt) - new Date(a.data.createdAt));
+      const trashed = all.filter(r => r.data.deleted).sort((a,b) => new Date(b.data.createdAt) - new Date(a.data.createdAt));
+
+      const validIds = new Set(active.map(r => r.id));
+      Array.from(selected).forEach(id => { if (!validIds.has(id)) selected.delete(id); });
+
+      if (active.length === 0) {
+        listEl.textContent = 'Chưa có nội dung nào được gửi.';
+      } else {
+        listEl.innerHTML = active.map(r => {
+          const d = r.data;
+          const time = new Date(d.createdAt).toLocaleString('vi-VN');
+          const status = d.passed ? '✅ Đạt' : '❌ Chưa đạt';
+          const safeText = String(d.text || '').replace(/</g,'&lt;');
+          const checked = selected.has(r.id) ? 'checked' : '';
+          return `<label style="display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid rgba(232,184,75,.25); cursor:pointer;">`
+            + `<input type="checkbox" class="row-check" data-id="${r.id}" ${checked} style="margin-top:4px; width:18px; height:18px; flex-shrink:0;">`
+            + `<span><div style="opacity:.7;">${time} · ${d.length} ký tự · ${status}</div>`
+            + `<div style="word-break:break-word;">${safeText}</div></span></label>`;
+        }).join('');
+        listEl.querySelectorAll('.row-check').forEach(cb => {
+          cb.addEventListener('change', () => {
+            const id = cb.getAttribute('data-id');
+            if (cb.checked) selected.add(id); else selected.delete(id);
+            updateClearBtn();
+          });
+        });
+      }
+      updateClearBtn();
+
+      trashCountEl.textContent = trashed.length;
+      if (trashed.length === 0) {
+        trashEl.textContent = 'Thùng rác trống.';
+      } else {
+        trashEl.innerHTML = trashed.map(r => {
+          const d = r.data;
+          const time = new Date(d.createdAt).toLocaleString('vi-VN');
+          const safeText = String(d.text || '').replace(/</g,'&lt;');
+          return `<div data-row-id="${r.id}" style="padding:8px 0; border-bottom:1px solid rgba(232,184,75,.25);">`
+            + `<div style="opacity:.7;">${time} · ${d.length} ký tự</div>`
+            + `<div style="word-break:break-word; margin-bottom:6px;">${safeText}</div>`
+            + `<div style="display:flex; gap:8px;">`
+            + `<button class="restore-btn" data-id="${r.id}" style="flex:1; padding:8px; border:none; border-radius:8px; background:#7fb77e; color:#fff; font-weight:700; cursor:pointer;">Khôi phục</button>`
+            + `<button class="purge-btn" data-id="${r.id}" style="flex:1; padding:8px; border:none; border-radius:8px; background:#c9403f; color:#fff; font-weight:700; cursor:pointer;">Xóa vĩnh viễn</button>`
+            + `</div></div>`;
+        }).join('');
+        trashEl.querySelectorAll('.restore-btn').forEach(btn => {
+          btn.addEventListener('click', () => restoreItem(btn.getAttribute('data-id')));
+        });
+        trashEl.querySelectorAll('.purge-btn').forEach(btn => {
+          btn.addEventListener('click', () => purgeItem(btn.getAttribute('data-id'), btn));
+        });
+      }
+    }
+
+    await refreshAdminList();
+    setInterval(refreshAdminList, 6000); // tự động làm mới mỗi 6 giây
+  } catch (e) { /* không phải chủ, bỏ qua */ }
+})();
+
+document.getElementById('reviewOk').addEventListener('click', async () => {
+  const val = document.getElementById('review').value.trim();
+  const msg = document.getElementById('reviewMsg');
+  const longEnough = isOwnerFlag || val.length >= 1000;
+
+  // Save every submitted review attempt, whether or not it meets the length requirement.
+  try {
+    if (val) {
+      await sheetApi({ action: 'add', text: val, length: val.length, passed: longEnough });
+    }
+  } catch (e) { /* lưu đánh giá thất bại, không chặn trải nghiệm */ }
+
+  if (!longEnough) {
+    const modal = document.getElementById('errorModal');
+    modal.classList.add('show');
+    document.getElementById('errorModalOk').onclick = () => modal.classList.remove('show');
+    msg.textContent = '';
+    return;
+  }
+
+  msg.textContent = 'Cảm ơn bạn đã đánh giá! Bạn có 3 lượt quay, bấm nút để quay từng lượt.';
+  msg.className = 'msg ok';
+  reviewed = true;
+  spinsLeft = 3;
+
+  setTimeout(() => {
+    document.querySelector('.wheel-stage').scrollIntoView({behavior:'smooth', block:'center'});
+    spinBtn.textContent = `BẤM ĐỂ QUAY (còn ${spinsLeft} lượt)`;
+  }, 500);
+});
+document.getElementById('review').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('reviewOk').click();
+});
+
+// Claim form — collects name/phone the player chooses to give to receive the prize.
+document.getElementById('claimOk').addEventListener('click', () => {
+  const name = document.getElementById('name').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const msg = document.getElementById('claimMsg');
+  if (!name || !phone) {
+    msg.textContent = 'Vui lòng nhập đầy đủ họ tên và số điện thoại.';
+    msg.className = 'msg err';
+    return;
+  }
+  msg.textContent = 'Cảm ơn bạn! Thông tin đã được ghi nhận, vui lòng mang theo điện thoại để đối chiếu khi nhận quà.';
+  msg.className = 'msg ok';
+});
+</script>
+</body>
+</html>
